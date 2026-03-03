@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoShop — E-Commerce DDD</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--surface, #1e1e2e);
+            border-radius: 16px;
+            padding: 32px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+            animation: slideUp .25s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+
+        .order-card {
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            background: var(--surface-2, #252536);
+            border: 1px solid var(--border, rgba(255, 255, 255, 0.07));
+        }
+
+        .order-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .order-meta {
+            font-size: 0.78rem;
+            color: var(--text-muted, #888);
+            margin-top: 4px;
+        }
+
+        .order-items-list {
+            margin-top: 12px;
+            border-top: 1px solid var(--border, rgba(255, 255, 255, 0.07));
+            padding-top: 12px;
+        }
+
+        .order-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 0.88rem;
+        }
+
+        .order-item-row .item-qty {
+            color: var(--text-muted, #888);
+            margin-left: 8px;
+        }
+
+        .order-shipping {
+            font-size: 0.78rem;
+            color: var(--text-muted, #888);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .order-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border, rgba(255, 255, 255, 0.07));
+            font-weight: 600;
+        }
+
+
+        .status-badge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .status-PENDING {
+            background: rgba(250, 189, 0, .15);
+            color: #fabd00;
+        }
+
+        .status-PAID {
+            background: rgba(80, 200, 120, .15);
+            color: #50c878;
+        }
+
+        .status-CONFIRMED {
+            background: rgba(80, 180, 255, .15);
+            color: #50b4ff;
+        }
+
+        .status-SHIPPED {
+            background: rgba(159, 122, 234, .15);
+            color: #9f7aea;
+        }
+
+        .status-DELIVERED {
+            background: rgba(80, 200, 120, .25);
+            color: #50c878;
+        }
+
+        .status-CANCELLED {
+            background: rgba(255, 80, 80, .15);
+            color: #ff5050;
+        }
+
+
+        .product-select-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .product-option {
+            border: 2px solid var(--border, rgba(255, 255, 255, 0.07));
+            border-radius: 10px;
+            padding: 14px;
+            cursor: pointer;
+            transition: border-color .2s, background .2s;
+            font-size: 0.88rem;
+        }
+
+        .product-option:hover {
+            border-color: var(--primary, #7c3aed);
+            background: rgba(124, 58, 237, .07);
+        }
+
+        .product-option.selected {
+            border-color: var(--primary, #7c3aed);
+            background: rgba(124, 58, 237, .12);
+        }
+
+        .product-option strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .product-option span {
+            color: var(--text-muted, #888);
+            font-size: 0.78rem;
+        }
+
+
+        .star-rating {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+
+        .star-rating span {
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: color .15s;
+            color: var(--text-muted, #888);
+        }
+
+        .star-rating span.active {
+            color: #fabd00;
+        }
+
+
+        .info-banner {
+            background: rgba(80, 180, 255, .08);
+            border: 1px solid rgba(80, 180, 255, .2);
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 0.88rem;
+            color: var(--text-muted, #aaa);
+            text-align: center;
+        }
+
+
+        .nav-badge {
+            background: var(--primary, #7c3aed);
+            color: #fff;
+            border-radius: 10px;
+            font-size: .68rem;
+            padding: 2px 7px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app" id="app">
+
+
+        <div id="auth-view" class="auth-container" style="display:none;">
+            <div class="card">
+                <div id="login-form">
+                    <h2>Iniciar Sesion</h2>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="login-email" placeholder="tu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="login-password" placeholder="********">
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="login()">Entrar</button>
+                    <p class="auth-toggle">¿No tienes cuenta? <a onclick="showRegister()">Registrate</a></p>
+                </div>
+
+                <div id="register-form" style="display:none;">
+                    <h2>Crear Cuenta</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" id="reg-name" placeholder="Tu nombre">
+                        </div>
+                        <div class="form-group">
+                            <label>Telefono</label>
+                            <input type="text" id="reg-phone" placeholder="+57 300...">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="reg-email" placeholder="tu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="reg-password" placeholder="********">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Calle</label>
+                            <input type="text" id="reg-street" placeholder="Calle 123">
+                        </div>
+                        <div class="form-group">
+                            <label>Ciudad</label>
+                            <input type="text" id="reg-city" placeholder="Bogota">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Pais</label>
+                        <input type="text" id="reg-country" placeholder="Colombia">
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="register()">Registrarse</button>
+                    <p class="auth-toggle">¿Ya tienes cuenta? <a onclick="showLogin()">Inicia Sesion</a></p>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="main-view" style="display:none;">
+            <nav>
+                <span class="logo">GoShop</span>
+                <div class="nav-actions">
+                    <span class="nav-user" id="nav-user-email"></span>
+                    <button class="btn btn-sm btn-secondary" onclick="logout()">Salir</button>
+                </div>
+            </nav>
+
+            <div class="tab-bar">
+                <button class="active" onclick="showTab('products', this)">Productos</button>
+                <button onclick="showTab('my-products', this)">Mis Productos</button>
+                <button onclick="showTab('cart', this)">Carrito</button>
+                <button id="tab-orders-btn" onclick="showTab('orders', this)">Mis Ordenes</button>
+                <button onclick="showTab('reviews', this)">Reseñas</button>
+            </div>
+
+
+            <div id="section-products" class="section active">
+                <div class="header-row">
+                    <h2>Catalogo</h2>
+                    <button class="btn btn-sm btn-secondary" onclick="loadProducts()">Refrescar</button>
+                </div>
+                <div id="products-list"></div>
+            </div>
+
+
+            <div id="section-my-products" class="section">
+                <div class="header-row">
+                    <h2>Publicar Producto</h2>
+                </div>
+                <div class="card">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" id="prod-name" placeholder="Nombre del producto">
+                        </div>
+                        <div class="form-group">
+                            <label>Categoria</label>
+                            <input type="text" id="prod-category" placeholder="Electronica, Ropa...">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Descripcion</label>
+                        <textarea id="prod-desc" rows="2" placeholder="Describe tu producto"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Precio (USD)</label>
+                            <input type="number" id="prod-price" placeholder="150.00" min="0.01" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Stock</label>
+                            <input type="number" id="prod-stock" placeholder="10" min="0">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="createProduct()">Publicar</button>
+                </div>
+            </div>
+
+
+            <div id="section-cart" class="section">
+                <div class="header-row">
+                    <h2>Mi Carrito</h2>
+                    <div>
+                        <button class="btn btn-sm btn-secondary" onclick="loadCart()">Refrescar</button>
+                        <button class="btn btn-sm btn-danger" onclick="clearCart()">Vaciar</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div id="cart-items"></div>
+                    <div class="cart-total">
+                        <span>Total</span>
+                        <span id="cart-total-amount">$0</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-block" onclick="openCheckoutModal()" style="margin-top:12px;">
+                    🛍️ Proceder al Pago
+                </button>
+            </div>
+
+
+            <div id="section-orders" class="section">
+                <div class="header-row">
+                    <h2>Mis Ordenes</h2>
+                    <button class="btn btn-sm btn-secondary" onclick="loadOrders()">Refrescar</button>
+                </div>
+                <div id="orders-list"></div>
+            </div>
+
+
+            <div id="section-reviews" class="section">
+                <div class="header-row">
+                    <h2>Reseñas</h2>
+                </div>
+
+
+                <div class="card" style="margin-bottom:16px;">
+                    <h3 style="margin-bottom:16px;">✍️ Escribir Reseña</h3>
+                    <p style="font-size:.85rem;color:var(--text-muted,#888);margin-bottom:16px;">
+                        Solo puedes reseñar productos que hayas comprado.
+                    </p>
+                    <div id="review-products-list">
+                        <div class="info-banner">Cargando tus productos comprados...</div>
+                    </div>
+                    <div id="review-form" style="display:none;">
+                        <div class="form-group">
+                            <label>Puntuación</label>
+                            <div class="star-rating" id="star-rating">
+                                <span data-val="1" onclick="setRating(1)">★</span>
+                                <span data-val="2" onclick="setRating(2)">★</span>
+                                <span data-val="3" onclick="setRating(3)">★</span>
+                                <span data-val="4" onclick="setRating(4)">★</span>
+                                <span data-val="5" onclick="setRating(5)">★</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Comentario</label>
+                            <textarea id="review-comment" rows="3"
+                                placeholder="Tu opinion sobre el producto..."></textarea>
+                        </div>
+                        <button class="btn btn-primary" onclick="createReview()">Enviar Reseña</button>
+                    </div>
+                </div>
+
+
+                <div class="card">
+                    <h3 style="margin-bottom:12px;">🔍 Ver Reseñas de un Producto</h3>
+                    <div class="form-group" style="margin-bottom:12px;">
+                        <div style="display:flex;gap:8px;">
+                            <input type="text" id="review-search-id" placeholder="ID del producto">
+                            <button class="btn btn-sm btn-secondary" onclick="loadReviews()">Buscar</button>
+                        </div>
+                    </div>
+                    <div id="reviews-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal-overlay" id="checkout-modal">
+        <div class="modal">
+            <h3>🚚 Dirección de Envío</h3>
+            <p style="font-size:.85rem;color:var(--text-muted,#888);margin-bottom:20px;">
+                Ingresa la dirección donde recibirás tu pedido.
+            </p>
+            <div class="form-group">
+                <label>Calle / Número</label>
+                <input type="text" id="checkout-street" placeholder="Cra 10 #25-30">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Ciudad</label>
+                    <input type="text" id="checkout-city" placeholder="Bogota">
+                </div>
+                <div class="form-group">
+                    <label>País</label>
+                    <input type="text" id="checkout-country" placeholder="Colombia">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Método de Pago</label>
+                <select id="checkout-payment"
+                    style="width:100%;padding:10px;border-radius:8px;background:var(--surface-2,#252536);color:inherit;border:1px solid var(--border,rgba(255,255,255,0.1));">
+                    <option value="card">💳 Tarjeta de Crédito/Débito</option>
+                    <option value="transfer">🏦 Transferencia Bancaria</option>
+                    <option value="cash">💵 Pago en Efectivo</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeCheckoutModal()" style="flex:1;">Cancelar</button>
+                <button class="btn btn-primary" onclick="confirmCheckout()" style="flex:2;">✅ Confirmar Pedido</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '';
+        let TOKEN = localStorage.getItem('token') || '';
+        let USER_EMAIL = localStorage.getItem('email') || '';
+        let selectedRating = 5;
+        let selectedReviewProductID = '';
+        let selectedReviewProductName = '';
+        let purchasedProducts = [];
+
+
+        function init() {
+            if (TOKEN) showMainView();
+            else showAuthView();
+        }
+
+        function showAuthView() {
+            document.getElementById('auth-view').style.display = 'block';
+            document.getElementById('main-view').style.display = 'none';
+        }
+
+        function showMainView() {
+            document.getElementById('auth-view').style.display = 'none';
+            document.getElementById('main-view').style.display = 'block';
+            document.getElementById('nav-user-email').textContent = USER_EMAIL;
+            loadProducts();
+        }
+
+        function showLogin() {
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('register-form').style.display = 'none';
+        }
+
+        function showRegister() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+        }
+
+        function showTab(id, btn) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+            document.getElementById('section-' + id).classList.add('active');
+            btn.classList.add('active');
+
+            if (id === 'products') loadProducts();
+            if (id === 'cart') loadCart();
+            if (id === 'orders') loadOrders();
+            if (id === 'reviews') loadReviewsTab();
+        }
+
+
+        function toast(msg, type) {
+            const t = document.createElement('div');
+            t.className = 'toast toast-' + (type || 'info');
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3500);
+        }
+
+
+        async function api(path, method, body) {
+            const opts = {
+                method: method || 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            };
+            if (TOKEN) opts.headers['Authorization'] = 'Bearer ' + TOKEN;
+            if (body) opts.body = JSON.stringify(body);
+
+            const res = await fetch(API + path, opts);
+            const text = await res.text();
+            if (!res.ok) {
+                toast(text.trim() || 'Error desconocido', 'error');
+                throw new Error(text);
+            }
+            try { return JSON.parse(text); } catch { return text; }
+        }
+
+
+        async function register() {
+            try {
+                await api('/api/register', 'POST', {
+                    email: document.getElementById('reg-email').value,
+                    name: document.getElementById('reg-name').value,
+                    phone: document.getElementById('reg-phone').value,
+                    password: document.getElementById('reg-password').value,
+                    street: document.getElementById('reg-street').value,
+                    city: document.getElementById('reg-city').value,
+                    country: document.getElementById('reg-country').value
+                });
+                toast('Cuenta creada. Inicia sesion.', 'success');
+                showLogin();
+            } catch (_) { }
+        }
+
+        async function login() {
+            try {
+                const data = await api('/api/login', 'POST', {
+                    email: document.getElementById('login-email').value,
+                    password: document.getElementById('login-password').value
+                });
+                TOKEN = data.token;
+                USER_EMAIL = document.getElementById('login-email').value;
+                localStorage.setItem('token', TOKEN);
+                localStorage.setItem('email', USER_EMAIL);
+                showMainView();
+                toast('¡Bienvenido!', 'success');
+            } catch (_) { }
+        }
+
+        function logout() {
+            TOKEN = ''; USER_EMAIL = '';
+            localStorage.removeItem('token');
+            localStorage.removeItem('email');
+            showAuthView();
+        }
+
+
+        async function loadProducts() {
+            try {
+                const products = await api('/api/products');
+                const list = document.getElementById('products-list');
+                if (!products || products.length === 0) {
+                    list.innerHTML = '<div class="empty-state"><p>No hay productos disponibles</p></div>';
+                    return;
+                }
+                list.innerHTML = products.map(p => `
+                    <div class="card">
+                        <h3>${esc(p.name)}</h3>
+                        <p>${esc(p.description)}</p>
+                        <span class="price">$${p.price.toFixed(2)}</span>
+                        <div class="meta">
+                            <span class="badge badge-stock">Stock: ${p.stock}</span>
+                            <span class="badge badge-category">${esc(p.category)}</span>
+                        </div>
+                        <div class="product-actions">
+                            <div class="quantity-control">
+                                <input type="number" id="qty-${p.id}" value="1" min="1" max="${p.stock}">
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="addToCart('${p.id}')">
+                                🛒 Agregar al Carrito
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (_) { }
+        }
+
+        async function createProduct() {
+            try {
+                await api('/api/products', 'POST', {
+                    name: document.getElementById('prod-name').value,
+                    description: document.getElementById('prod-desc').value,
+                    price: parseFloat(document.getElementById('prod-price').value) || 0,
+                    stock: parseInt(document.getElementById('prod-stock').value) || 0,
+                    category: document.getElementById('prod-category').value
+                });
+                toast('¡Producto publicado!', 'success');
+                ['prod-name', 'prod-desc', 'prod-price', 'prod-stock', 'prod-category'].forEach(id => {
+                    document.getElementById(id).value = '';
+                });
+            } catch (_) { }
+        }
+
+
+        async function addToCart(productId) {
+            const qty = parseInt(document.getElementById('qty-' + productId).value) || 1;
+            try {
+                await api('/api/cart', 'POST', { product_id: productId, quantity: qty });
+                toast('¡Agregado al carrito!', 'success');
+            } catch (_) { }
+        }
+
+        async function loadCart() {
+            try {
+                const cart = await api('/api/cart');
+                const container = document.getElementById('cart-items');
+                if (!cart.items || cart.items.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>Tu carrito esta vacio</p></div>';
+                    document.getElementById('cart-total-amount').textContent = '$0';
+                    return;
+                }
+                container.innerHTML = cart.items.map(item => `
+                    <div class="cart-item">
+                        <div>
+                            <strong>${esc(item.name)}</strong>
+                            <p style="color:var(--text-muted);font-size:.8rem;">
+                                Cant: ${item.quantity} × $${item.price.toFixed(2)}
+                            </p>
+                        </div>
+                        <div>
+                            <span class="price">$${item.subtotal.toFixed(2)}</span>
+                            <button class="btn btn-sm btn-danger" style="margin-left:8px;"
+                                onclick="removeFromCart('${item.product_id}')">×</button>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('cart-total-amount').textContent =
+                    '$' + cart.total.toFixed(2);
+            } catch (_) { }
+        }
+
+        async function removeFromCart(productId) {
+            try {
+                await api('/api/cart/remove', 'POST', { product_id: productId });
+                toast('Item eliminado', 'success');
+                loadCart();
+            } catch (_) { }
+        }
+
+        async function clearCart() {
+            try {
+                await api('/api/cart/clear', 'POST', {});
+                toast('Carrito vaciado', 'success');
+                loadCart();
+            } catch (_) { }
+        }
+
+
+        function openCheckoutModal() {
+            document.getElementById('checkout-modal').classList.add('active');
+        }
+
+        function closeCheckoutModal() {
+            document.getElementById('checkout-modal').classList.remove('active');
+        }
+
+        async function confirmCheckout() {
+            const street = document.getElementById('checkout-street').value.trim();
+            const city = document.getElementById('checkout-city').value.trim();
+            const country = document.getElementById('checkout-country').value.trim();
+            const method = document.getElementById('checkout-payment').value;
+
+            if (!street || !city || !country) {
+                toast('Completa todos los campos de dirección', 'error');
+                return;
+            }
+
+            try {
+                const result = await api('/api/cart/checkout', 'POST', {
+                    payment_method: method,
+                    street, city, country
+                });
+                closeCheckoutModal();
+                toast('¡Pedido realizado con éxito! Orden: ' + result.order_id.substring(0, 8) + '...', 'success');
+                loadCart();
+                loadOrders();
+                purchasedProducts = [];
+            } catch (_) { }
+        }
+
+
+        async function loadOrders() {
+            const container = document.getElementById('orders-list');
+            container.innerHTML = '<div class="empty-state"><p>Cargando ordenes...</p></div>';
+            try {
+                const orders = await api('/api/orders');
+                if (!orders || orders.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>Aún no tienes ordenes</p></div>';
+                    return;
+                }
+                container.innerHTML = orders.map(o => {
+                    const statusClass = 'status-' + (o.status || 'PENDING');
+                    const itemsHTML = (o.items || []).map(it => `
+                        <div class="order-item-row">
+                            <span>${esc(it.name)} <span class="item-qty">× ${it.quantity}</span></span>
+                            <span>$${it.subtotal.toFixed(2)}</span>
+                        </div>
+                    `).join('');
+                    return `
+                    <div class="order-card">
+                        <div class="order-card-header">
+                            <div>
+                                <strong style="font-size:.9rem;">Orden #${o.id.substring(0, 8)}...</strong>
+                                <div class="order-meta">${formatDate(o.created_at)}</div>
+                            </div>
+                            <span class="status-badge ${statusClass}">${o.status}</span>
+                        </div>
+                        <div class="order-shipping">
+                            📍 ${esc(o.shipping_street)}, ${esc(o.shipping_city)}, ${esc(o.shipping_country)}
+                        </div>
+                        ${itemsHTML ? `<div class="order-items-list">${itemsHTML}</div>` : ''}
+                        <div class="order-total-row">
+                            <span>Total</span>
+                            <span class="price">$${o.total.toFixed(2)}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (_) {
+                container.innerHTML = '<div class="empty-state"><p>Error al cargar ordenes</p></div>';
+            }
+        }
+
+        function formatDate(iso) {
+            if (!iso) return '';
+            try {
+                return new Date(iso).toLocaleString('es-CO', {
+                    year: 'numeric', month: 'short', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit'
+                });
+            } catch { return iso; }
+        }
+
+
+        async function loadReviewsTab() {
+
+            const container = document.getElementById('review-products-list');
+            container.innerHTML = '<div class="info-banner">Cargando tus productos comprados...</div>';
+            try {
+                const orders = await api('/api/orders');
+
+                const seen = new Set();
+                purchasedProducts = [];
+                (orders || []).forEach(o => {
+                    (o.items || []).forEach(it => {
+                        if (!seen.has(it.product_id)) {
+                            seen.add(it.product_id);
+                            purchasedProducts.push({ id: it.product_id, name: it.name });
+                        }
+                    });
+                });
+
+                if (purchasedProducts.length === 0) {
+                    container.innerHTML = `
+                        <div class="info-banner">
+                            Aún no has comprado ningún producto. Realiza un pedido primero para poder reseñarlo.
+                        </div>`;
+                    document.getElementById('review-form').style.display = 'none';
+                    return;
+                }
+
+                container.innerHTML = '<div class="product-select-grid">' +
+                    purchasedProducts.map(p => `
+                        <div class="product-option" id="po-${p.id}" onclick="selectReviewProduct('${p.id}', '${esc(p.name)}')">
+                            <strong>${esc(p.name)}</strong>
+                            <span>${p.id.substring(0, 12)}...</span>
+                        </div>
+                    `).join('') + '</div>';
+
+
+                if (purchasedProducts.length === 1) {
+                    selectReviewProduct(purchasedProducts[0].id, purchasedProducts[0].name);
+                }
+            } catch (_) {
+                container.innerHTML = '<div class="info-banner">Error al cargar productos comprados.</div>';
+            }
+        }
+
+        function selectReviewProduct(id, name) {
+            selectedReviewProductID = id;
+            selectedReviewProductName = name;
+            document.querySelectorAll('.product-option').forEach(el => el.classList.remove('selected'));
+            const el = document.getElementById('po-' + id);
+            if (el) el.classList.add('selected');
+            document.getElementById('review-form').style.display = 'block';
+
+            document.getElementById('review-search-id').value = id;
+        }
+
+        function setRating(val) {
+            selectedRating = val;
+            document.querySelectorAll('.star-rating span').forEach((el, i) => {
+                el.classList.toggle('active', i < val);
+            });
+        }
+
+        async function createReview() {
+            if (!selectedReviewProductID) {
+                toast('Selecciona un producto primero', 'error');
+                return;
+            }
+            const comment = document.getElementById('review-comment').value.trim();
+            if (!comment) {
+                toast('Escribe un comentario', 'error');
+                return;
+            }
+            try {
+                await api('/api/reviews', 'POST', {
+                    product_id: selectedReviewProductID,
+                    rating: selectedRating,
+                    comment
+                });
+                toast('¡Reseña publicada!', 'success');
+                document.getElementById('review-comment').value = '';
+                loadReviews();
+            } catch (_) { }
+        }
+
+        async function loadReviews() {
+            const pid = document.getElementById('review-search-id').value.trim();
+            if (!pid) { toast('Ingresa un ID de producto', 'error'); return; }
+            try {
+                const reviews = await api('/api/reviews?product_id=' + pid);
+                const list = document.getElementById('reviews-list');
+                if (!reviews || reviews.length === 0) {
+                    list.innerHTML = '<div class="empty-state"><p>Sin reseñas para este producto</p></div>';
+                    return;
+                }
+                list.innerHTML = reviews.map(r => `
+                    <div class="card" style="margin-bottom:12px;">
+                        <div class="review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+                        <p style="margin:8px 0;">${esc(r.comment)}</p>
+                        <div class="meta"><span>Autor: ${r.author_id.substring(0, 8)}...</span></div>
+                    </div>
+                `).join('');
+            } catch (_) { }
+        }
+
+
+        function esc(str) {
+            const d = document.createElement('div');
+            d.textContent = str || '';
+            return d.innerHTML;
+        }
+
+
+        document.getElementById('checkout-modal').addEventListener('click', function (e) {
+            if (e.target === this) closeCheckoutModal();
+        });
+
+
+        setRating(5);
+
+        init();
+    </script>
+
+</body>
+
+</html>
